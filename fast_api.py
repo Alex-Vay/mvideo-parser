@@ -1,14 +1,15 @@
 import asyncio
-from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from concurrent.futures import ThreadPoolExecutor
+from fastapi import FastAPI, Depends, HTTPException
 from mvideo import get_data_mvideo
 from sqlmodel import Field, SQLModel, create_engine, Session, select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 class Prices(SQLModel, table=True):
-    id: int
+    id: int = Field(primary_key=True)
     name: str
     cost: int
-    link: str = Field(primary_key=True)
+    link: str
 
 
 app = FastAPI()
@@ -52,7 +53,35 @@ async def background_parser_async():
 @app.on_event("startup")
 async def startup_event():
     create_db_and_tables()
-    asyncio.create_task(background_parser_async())
+    executor = ThreadPoolExecutor(max_workers=3)
+    executor.submit(run_async_task_in_thread, background_parser_async())
+
+
+def run_async_task_in_thread(coro):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(coro)
+
+
+# async def background_parser_async():
+#     while True:
+#         print("Starting get price")
+#         async with get_async_session() as session:
+#             async for product in get_data_mvideo():
+#                 existing_product = await session.execute(
+#                     select(Prices).where(Prices.link == product["link"])
+#                 )
+#                 if existing_product.scalar_one_or_none() is None:
+#                     p = Prices(**product)
+#                     session.add(p)
+#                     await session.commit()
+#         await asyncio.sleep(12 * 60 * 60)
+#
+#
+# @app.on_event("startup")
+# async def startup_event():
+#     create_db_and_tables()
+#     asyncio.create_task(background_parser_async())
 
 
 @app.get("/prices")
