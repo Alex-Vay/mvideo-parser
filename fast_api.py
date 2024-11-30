@@ -1,14 +1,12 @@
 import asyncio
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
-from torch.ao.quantization.backend_config.onednn import with_bn
-
-from parser1 import get_price
+from mvideo import get_data_mvideo
 from starlette.concurrency import run_in_threadpool
 from sqlmodel import Field, SQLModel, create_engine, Session, select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
 app = FastAPI()
-PRICES_DB = []
 
 class Prices(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -25,56 +23,50 @@ def get_async_session():
     dbsession = async_sessionmaker(engine_2)
     return dbsession()
 
-# def get_session():
-#     with Session(engine) as session:
-#         yield session
-
 async def get_session():
     async with get_async_session() as session:
         yield session
 
 SessionDep = Depends(get_session)
 
-class Item(BaseModel):
-    ...
-
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-def background_parser_sync():
-    import time
-    while True:
-        print("Hello!")
-        time.sleep(2)
-
-def add_item(title, price, index):
-    item = Item(myindex=str(index), name=title, price=price)
-    if item in PRICES_DB:
-        return
-    PRICES_DB.append(Item(myindex=str(index), name=title, price=price))
 
 async def background_parser_async():
     while True:
         print("Starting get price")
-        await asyncio.sleep(12 * 60 * 60)
-        title, price, index = await run_in_threadpool(get_price)
-        print(f"{title} - {price}")
-        add_item(title, price, index)
+        # await asyncio.sleep(12 * 60 * 60)
+        data = await run_in_threadpool(get_data_mvideo)
+        session = get_async_session()
+        for i in data:
+            print(i)
+            existing_product = await session.execute(
+                select(Prices).where(Prices.link == i["link"])
+            )
+            if existing_product.scalar_one_or_none() is None:
+                # Если продукт не найден, добавляем его
+                p = Prices(**i)
+                session.add(p)
+                await session.commit()
 
-def background_add_item():
-    data = get_price()
-    add_item(*data)
+        # add_item(title, price, index)
+        await asyncio.sleep(12 * 60 * 60)
+
+# def background_add_item():
+#     data = get_price()
+#     # add_item(*data)
 
 @app.on_event("startup")
 async def startup_event():
     create_db_and_tables()
     asyncio.create_task(background_parser_async())
 
-@app.get("/start_parser")
-async def start_parser(background_tasks: BackgroundTasks):
-    #  asyncio.create_task(background_add_item())
-    background_tasks.add_task(background_add_item)
-    return {}
+# @app.get("/start_parser")
+# async def start_parser(background_tasks: BackgroundTasks):
+#     #  asyncio.create_task(background_add_item())
+#     background_tasks.add_task(background_add_item)
+#     return {}
 
 @app.get("/prices")
 async def read_prices(session: Session = SessionDep, offset: int = 0, limit: int = 100):

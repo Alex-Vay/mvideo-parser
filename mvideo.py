@@ -1,6 +1,4 @@
-import json, os, math, time
-from xlsxwriter.workbook import Workbook
-import datetime
+import math, time
 import requests
 from config import headers, cookies
 
@@ -20,7 +18,7 @@ def get_data_mvideo():
     total_items = resp['body']['total']
     total_pages = math.ceil(total_items / 24)
     print(f'[INFO] Total positions: {total_items} | Total pages: {total_pages}')
-    for i in range(total_pages // 10):
+    for i in range(total_pages // 20):
         try:
             products_desc = {}
             products_prices = {}
@@ -65,6 +63,7 @@ def get_data_mvideo():
                     }
                 print(f'[+] Success get {i + 1} of the {total_pages} pages success')
                 n = 0
+                prod = []
                 for items in products_desc.values():
                     products = items['body']['products']
                     for item in products:
@@ -78,12 +77,21 @@ def get_data_mvideo():
                             n = 0
                         else:
                             n += 1
-                        print(name, current_price, link)
-                        # yield {name, current_price, link}
+                        # print(name, current_price, link)
+                        prod.append({
+                            'id' : i * 24 + n,
+                            'name' : name,
+                            'cost' : int(current_price),
+                            'link' : link})
+                return prod
             else:
                 print(f'[!] Skipped {i + 1} page')
         except Exception as e:
             print(f'[!] Skipped {i + 1} page', e.__class__.__name__)
+
+
+
+
     # with open('data/1_product_description.json', 'w', encoding='UTF-8') as file:
     #     json.dump(products_desc, file, indent=4, ensure_ascii=False)
     # with open('data/2_product_prices.json', 'w', encoding='UTF-8') as file:
@@ -137,4 +145,5 @@ def get_data_mvideo():
 
 
 # parse('Ноутбуки')
-get_data_mvideo()
+for i in get_data_mvideo():
+    print(i)
