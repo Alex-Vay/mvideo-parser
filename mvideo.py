@@ -80,7 +80,7 @@ async def get_data_mvideo():
                         else:
                             n += 1
                         yield {
-                            'id' : i * 24 + n,
+                            'id' : product_id,
                             'name' : name,
                             'cost' : int(current_price),
                             'link' : link}

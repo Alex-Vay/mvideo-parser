@@ -35,34 +35,6 @@ def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
-async def background_parser_async():
-    while True:
-        print("Starting get price")
-        async with get_async_session() as session:
-            async for product in get_data_mvideo():
-                existing_product = await session.execute(
-                    select(Prices).where(Prices.link == product["link"])
-                )
-                if existing_product.scalar_one_or_none() is None:
-                    p = Prices(**product)
-                    session.add(p)
-                    await session.commit()
-        await asyncio.sleep(12 * 60 * 60)
-
-
-@app.on_event("startup")
-async def startup_event():
-    create_db_and_tables()
-    executor = ThreadPoolExecutor(max_workers=3)
-    executor.submit(run_async_task_in_thread, background_parser_async())
-
-
-def run_async_task_in_thread(coro):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(coro)
-
-
 # async def background_parser_async():
 #     while True:
 #         print("Starting get price")
@@ -81,7 +53,34 @@ def run_async_task_in_thread(coro):
 # @app.on_event("startup")
 # async def startup_event():
 #     create_db_and_tables()
-#     asyncio.create_task(background_parser_async())
+#     executor = ThreadPoolExecutor(max_workers=3)
+#     executor.submit(run_async_task_in_thread, background_parser_async())
+#
+#
+# def run_async_task_in_thread(coro):
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     loop.run_until_complete(coro)
+
+
+async def background_parser_async():
+    while True:
+        print("Starting get price")
+        async with get_async_session() as session:
+            async for product in get_data_mvideo():
+                existing_product = await session.execute(
+                    select(Prices).where(Prices.id == product['id'])
+                )
+                if existing_product.scalar_one_or_none() is None:
+                    session.add(Prices(**product))
+                    await session.commit()
+        await asyncio.sleep(12 * 60 * 60)
+
+
+@app.on_event("startup")
+async def startup_event():
+    create_db_and_tables()
+    asyncio.create_task(background_parser_async())
 
 
 @app.get("/prices")
