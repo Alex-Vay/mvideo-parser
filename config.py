@@ -1,8 +1,5 @@
 import requests
 
-url = "https://www.mvideo.ru/noutbuki-planshety-komputery-8/noutbuki-118"  # Замените на целевой сайт
-cookies = requests.get(url).cookies
-
 headers = {
     'accept': '*/*',
     'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,zh-CN;q=0.6,zh;q=0.5,ja;q=0.4',
@@ -18,3 +15,6 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'x-kl-kfa-ajax-request': 'Ajax_Request',
 }
+
+url = "https://www.mvideo.ru/noutbuki-planshety-komputery-8/noutbuki-118"
+cookies = requests.get(url, headers=headers).cookies
