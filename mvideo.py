@@ -1,5 +1,6 @@
 import asyncio
 import math
+
 import requests
 
 from config import headers, cookies
@@ -11,7 +12,7 @@ async def get_data_mvideo():
         'categoryId': f'{ids}',
         'offset': '0',
         'limit': '24',
-        'filterParams': 'WyJ0b2xrby12LW5hbGljaGlpIiwiLTEyIiwiZGEiXQ%3D%3D',
+        'filterParams': 'WyJ0b2xrby12LW5hbGljaGlpIiwiLTEyIiwiZGEiXQ==',
         'doTranslit': 'true',
     }
     session = requests.Session()
@@ -54,7 +55,14 @@ async def get_data_mvideo():
                     'isPromoApplied': 'true'
                 }
                 resp = session.get('https://www.mvideo.ru/bff/products/prices', params=params, cookies=cookies,
-                                   headers=headers).json()
+                                   headers=headers)
+                tr = 1
+                while resp.status_code != 200 and tr < 5:
+                    await asyncio.sleep(30)
+                    resp = session.get('https://www.mvideo.ru/bff/products/prices', params=params, cookies=cookies,
+                                       headers=headers)
+                    tr += 1
+                resp = resp.json()
                 material_prices = resp['body']['materialPrices']
                 for item in material_prices:
                     item_id = item['price']['productId']
@@ -88,3 +96,9 @@ async def get_data_mvideo():
                 print(f'[!] Skipped {i + 1} page')
         except Exception as e:
             print(f'[!] Skipped {i + 1} page', e.__class__.__name__)
+
+# async def z():
+#     async for i in get_data_mvideo():
+#         print(i)
+#
+# asyncio.run(z())
