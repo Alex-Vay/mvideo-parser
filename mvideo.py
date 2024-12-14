@@ -1,6 +1,5 @@
 import asyncio
 import math
-
 import requests
 
 from config import headers, cookies
@@ -90,15 +89,16 @@ async def get_data_mvideo():
                         yield {
                             'id' : product_id,
                             'name' : name,
-                            'cost' : int(current_price),
-                            'link' : link}
+                            'price' : int(current_price),
+                            'link' : link
+                        }
             else:
                 print(f'[!] Skipped {i + 1} page')
         except Exception as e:
             print(f'[!] Skipped {i + 1} page', e.__class__.__name__)
 
-# async def z():
-#     async for i in get_data_mvideo():
-#         print(i)
+# async def test_parser():
+#     async for product in get_data_mvideo():
+#         print(product)
 #
-# asyncio.run(z())
+# asyncio.run(test_parser())
