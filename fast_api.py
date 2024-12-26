@@ -67,17 +67,20 @@ def create_db_and_tables():
 async def background_parser_async():
     while True:
         print("Starting get price")
-        async with get_async_session() as session:
+        async with (get_async_session() as session):
             product_count = 0
             async for product in get_data_mvideo():
                 existing_product = await session.execute(
                     select(Prices).where(Prices.id == product['id'])
                 )
-                if existing_product.scalar_one_or_none() is None:
-                    p = Prices(**product)
+                existing_product = existing_product.scalar_one_or_none()
+                p = Prices(**product)
+                if existing_product is None:
                     session.add(p)
                     await session.commit()
                     product_count += 1
+                elif existing_product.price != product['price']:
+                    await update_item(product['id'], p)
                 if product_count % 100 == 0 and product_count > 0:
                     await manager.broadcast(f"В базу добавлен {product_count} товар")
             await manager.broadcast(f"Всего в базе {product_count} товаров")
